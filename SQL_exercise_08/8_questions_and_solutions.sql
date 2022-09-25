@@ -37,5 +37,50 @@
 -- The patient has undergone a procedure with a cost larger that $5,000
 -- The patient has had at least two appointment where the nurse who prepped the appointment was a registered nurse.
 -- The patient's primary care physician is not the head of any department.
-SELECT E.Patient, F.Name, F.PCP, G.Name FROM (SELECT * FROM (SELECT Pres.Patient, Pres.Physician FROM Prescribes Pres, Patient Pat WHERE Pat.SSN = Pres.Patient AND Pat.PCP = Pres.Physician) A JOIN (SELECT U.Patient, COUNT(U.Procedures), SUM(Pro.Cost) FROM Undergoes U, Procedures Pro WHERE Pro.Code = U.Procedures GROUP BY U.Patient HAVING SUM(Pro.Cost) > 5000) B ON A.Patient = B.Patient
-JOIN (SELECT A.Patient, A.PrepNurse, COUNT(A.AppointmentID) FROM Appointment A LEFT JOIN Nurse N ON A.PrepNurse = N.EmployeeID WHERE N.Registered = 1 GROUP BY A.Patient HAVING COUNT(A.AppointmentID) >= 2) C ON B.Patient = C.Patient JOIN (SELECT Pat.SSN, Pat.PCP FROM Patient Pat, Department D WHERE Pat.PCP != D.Head GROUP BY Pat.SSN) D ON C.Patient = D.SSN) E, Patient F, Physician G WHERE E.Patient = F.SSN AND F.PCP = G.EmployeeID
+SELECT E.Patient, F.Name, F.PCP, G.Name FROM 
+(SELECT * FROM 
+(SELECT Pres.Patient, Pres.Physician FROM Prescribes Pres, Patient Pat WHERE Pat.SSN = Pres.Patient AND Pat.PCP = Pres.Physician) A 
+JOIN 
+(SELECT U.Patient, COUNT(U.Procedures), SUM(Pro.Cost) FROM Undergoes U, Procedures Pro WHERE Pro.Code = U.Procedures GROUP BY U.Patient HAVING SUM(Pro.Cost) > 5000) B
+ON A.Patient = B.Patient
+JOIN 
+(SELECT A.Patient, A.PrepNurse, COUNT(A.AppointmentID) FROM Appointment A
+LEFT JOIN Nurse N 
+ON A.PrepNurse = N.EmployeeID WHERE N.Registered = 1 GROUP BY A.Patient HAVING COUNT(A.AppointmentID) >= 2) C
+ON B.Patient = C.Patient 
+JOIN 
+(SELECT Pat.SSN, Pat.PCP FROM Patient Pat, Department D WHERE Pat.PCP != D.Head GROUP BY Pat.SSN) D
+ON C.Patient = D.SSN) E, Patient F, Physician G WHERE E.Patient = F.SSN AND F.PCP = G.EmployeeID
+
+SELECT Pat.Name, P.Name FROM (SELECT Pre.Patient FROM Prescribes Pre
+LEFT JOIN
+Patient Pat ON Pat.SSN = Pre.Patient
+WHERE Pre.Physician = Pat.PCP) A
+LEFT JOIN
+(SELECT U.Patient FROM Undergoes U
+LEFT JOIN
+Procedures Pro ON U.Procedures = Pro.Code
+GROUP BY U.Patient HAVING SUM(Pro.Cost) > 5000) B
+ON A.Patient = B.Patient
+LEFT JOIN
+(SELECT A.Patient FROM Appointment A
+LEFT JOIN
+Nurse N ON A.PrepNurse = N.EmployeeId
+WHERE N.Registered = 1
+GROUP BY A.Patient HAVING COUNT(AppointmentID) >= 2) C
+ON A.Patient = C.Patient
+LEFT JOIN
+(SELECT Pat.SSN FROM Patient Pat
+LEFT JOIN
+Affiliated_With AW ON Pat.PCP = AW.Physician 
+LEFT JOIN 
+Department D ON AW.Department = D.DepartmentID
+WHERE Pat.PCP <> D.Head) D
+ON A.Patient = D.SSN
+LEFT JOIN 
+Patient Pat
+ON A.Patient = Pat.SSN
+LEFT JOIN
+Physician P
+ON Pat.PCP = P.EmployeeID
+
